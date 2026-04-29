@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unigenome | NGS Analysis Report | NGS-240592</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-datatables@9.0.3/dist/style.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@9.0.3/dist/umd/simple-datatables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --novo-blue: #337ab7;
+            --novo-blue-dark: #23527c;
+            --bg-gray: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #334155;
+            background-color: var(--bg-gray);
+            scroll-behavior: smooth;
+            line-height: 1.6;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+        /* Sidebar Navigation Style */
+        #TOC {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            overflow-y: auto;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            z-index: 1000;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 10px 24px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            border-left: 4px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background-color: #f1f5f9;
+            color: var(--novo-blue);
+        }
+
+        .nav-link.active {
+            color: var(--novo-blue);
+            background-color: #f0f7ff;
+            border-left-color: var(--novo-blue);
+            font-weight: 700;
+        }
+
+        /* Content Structure */
+        .main-content {
+            margin-left: 280px;
+            padding: 60px 80px;
+            max-width: 1200px;
+        }
+
+        h1.main-title { font-size: 34px; font-weight: 800; color: #0f172a; letter-spacing: -0.025em; margin-bottom: 8px; }
+        h2.section-title { 
+            font-size: 24px; font-weight: 700; color: var(--novo-blue); 
+            border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-top: 60px; margin-bottom: 30px;
+        }
+        h3.sub-title { font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 35px; margin-bottom: 15px; }
+        
+        p { margin-bottom: 1.25rem; text-align: justify; }
+
+        /* Premium Table Style */
+        .table-container { 
+            background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin: 24px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .datatable-table { border-collapse: collapse !important; width: 100% !important; }
+        .datatable-table th { background: #f8fafc !important; color: #475569 !important; font-weight: 700 !important; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; padding: 12px 16px !important; }
+        .datatable-table td { padding: 12px 16px !important; border-top: 1px solid #f1f5f9 !important; font-size: 13px; }
+
+        /* Charts & Graphics */
+        .chart-box { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin: 24px 0; height: 400px; }
+
+        .info-card { @apply bg-white border border-slate-200 rounded-xl p-6 mb-6 shadow-sm; }
+
+        /* Print/Export Guards */
+        @media print {
+            #TOC { display: none !important; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            h2.section-title { page-break-before: always; }
+        }
+
+        .export-mode .main-content { margin-left: 0; width: 100%; max-width: none; padding: 40px; }
+        .export-mode #TOC { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside id="TOC" class="no-print">
+        <div class="p-8 border-b border-slate-100 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-[#337ab7] rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                    <i data-lucide="dna" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <span class="block font-black text-xl tracking-tighter text-slate-900">UNIGENOME</span>
+                    <span class="block text-[9px] uppercase tracking-widest text-slate-400 font-bold">Leading Genomics</span>
+                </div>
+            </div>
+        </div>
+        <nav>
+            <p class="px-6 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3 mt-6">Navigation</p>
+            <a href="#summary" class="nav-link active">1 Project Details</a>
+            <a href="#samples" class="nav-link">2 Sample Details</a>
+            <a href="#methods" class="nav-link">3 Methods</a>
+            <a href="#qc-library" class="nav-link">4 Library Quality Control</a>
+            <a href="#bioinformatics" class="nav-link">5 Bioinformatics Analysis</a>
+            <a href="#data-stats" class="nav-link">5.3 Data Statistics</a>
+            <a href="#genome" class="nav-link">5.4 Reference Genome</a>
+            <a href="#alignment" class="nav-link">5.5 Mapping Results</a>
+            <a href="#assembly" class="nav-link">5.6 Transcript Assembly</a>
+            <a href="#dge" class="nav-link">5.8 Differential Expression</a>
+            <a href="#functional" class="nav-link">5.8.5 Pathway Analysis</a>
+            <a href="#deliverables" class="nav-link">6 Deliverables</a>
+        </nav>
+        
+        <div class="mt-auto p-6 border-t border-slate-100 bg-slate-50">
+            <button onclick="exportReport()" id="exportBtn" class="w-full bg-[#337ab7] text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#23527c] transition-all shadow-md active:scale-95">
+                <i data-lucide="file-down" class="w-4 h-4"></i> Export PDF Report
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="report-body">
+        
+        <!-- Cover Page Section -->
+        <section id="summary" class="mb-20 min-h-[70vh] flex flex-col justify-center">
+            <span class="text-[11px] font-black text-blue-600 uppercase tracking-[0.4em] mb-4 block">Confidential Analysis Report</span>
+            <h1 class="main-title">Final Report of Whole Transcriptome Sequencing & Analysis</h1>
+            <p class="text-xl text-slate-500 font-light mb-12">On Illumina Novaseq X Plus Platform</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 border-t border-slate-200 pt-10">
+                <div class="space-y-6">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Submitted To</label>
+                        <p class="text-lg font-bold text-slate-800">Dr. Ankita Singh</p>
+                        <p class="text-sm text-slate-500">Scientific Affairs, ICGA Foundation, India</p>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Project Details</label>
+                        <div class="table-container m-0">
+                            <table class="w-full">
+                                <tr><td class="bg-slate-50 font-bold w-1/3">Service Type</td><td>RNA Sequencing</td></tr>
+                                <tr><td class="bg-slate-50 font-bold">Platform</td><td>Illumina Novaseq X Plus</td></tr>
+                                <tr><td class="bg-slate-50 font-bold">Read Length</td><td>2 X 150 PE</td></tr>
+                                <tr><td class="bg-slate-50 font-bold">Yield</td><td>~ 18-20 Gb/Sample</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Submitted By</label>
+                        <p class="text-lg font-bold text-slate-800">Unigenome Division</p>
+                        <p class="text-sm text-slate-500">A life sciences division of USLL</p>
+                        <p class="text-[11px] text-slate-400 mt-2">Ahmedabad – 380015 | Gujarat, India</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest block mb-1">Report Version</label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="px-2 py-1 bg-blue-600 text-white text-[10px] font-black rounded uppercase tracking-widest">NGS-240592</span>
+                            <span class="text-xs text-blue-700 font-bold">Date: 10.12.2025</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Samples -->
+        <section id="samples">
+            <h2 class="section-title">2 Sample Details</h2>
+            <p>The analysis was performed on <strong>8 samples</strong> derived from Frozen Tissue. All samples were processed with high-fidelity library preparation and deep sequencing coverage.</p>
+            <div class="table-container">
+                <table id="sampleTable" class="w-full">
+                    <thead>
+                        <tr>
+                            <th>S. No</th>
+                            <th>Sample ID</th>
+                            <th>Type</th>
+                            <th>Condition</th>
+                            <th>Libraries Prepared</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>ICGA_BC_NT_125</td><td>Frozen Tissue</td><td>Frozen</td><td>1</td></tr>
+                        <tr><td>2</td><td>ICGA_BC_TT_125</td><td>Frozen Tissue</td><td>Frozen</td><td>1</td></tr>
+                        <tr><td>3</td><td>ICGA_BC_NT_126</td><td>Frozen Tissue</td><td>Frozen</td><td>1</td></tr>
+                        <tr><td>4</td><td>ICGA_BC_TT_126</td><td>Frozen Tissue</td><td>Frozen</td><td>1</td></tr>
+                        <tr><td>5</td><td>ICGA_BC_NT_127</td><td>Frozen Tissue</td><td>Frozen</td><td>1</td></tr>
+                        <tr><td>6</td><td>ICGA_BC_TT_127</td><td>Frozen Tissue</td><td>Frozen</td><td>1</td></tr>
+                        <tr><td>7</td><td>ICGA_BC_NT_129</td><td>Frozen Tissue</td><td>Frozen</td><td>1</td></tr>
+                        <tr><td>8</td><td>ICGA_BC_TT_129</td><td>Frozen Tissue</td><td>Frozen</td><td>1</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 3. Methodology -->
+        <section id="methods">
+            <h2 class="section-title">3 Methods</h2>
+            
+            <h3 class="sub-title">3.1 Isolation and Quantitative analysis of RNA</h3>
+            <p>RNA sample was extracted from tissue sample using <strong>QIAGEN RNeasy mini kit (CAT.NO:74106)</strong>. RNA quantity was measured using Qubit® 4.0 fluorometer and quality were analyzed by using 1% agarose gel.</p>
+
+            <h3 class="sub-title">3.2 Preparation of Library</h3>
+            <p>The paired-end sequencing library was prepared using <strong>NEBNext® Ultra™ RNA Library Prep Kit for Illumina (NEB #E7770)</strong>. The process was initiated with 100 ng input. Ribosomal RNA removal was carried out using ribodepletion kit <strong>KAPA RNA HyperPrep Kit with RiboErase (HMR) (Cat no: KK8561)</strong> as per user manual.</p>
+            <p>Ribo-depleted RNA was subjected to fragmentation, first & second-strand cDNA synthesis, end-repair, 3´ adapter ligation, and selective enrichment of adapter-ligated DNA fragments through PCR amplification. Final library validation was performed on an Agilent 4150 TapeStation.</p>
+
+            <h3 class="sub-title">3.6 Quantification using Qubit 4.0 Fluorometer</h3>
+            <div class="table-container">
+                <table id="qubitTable">
+                    <thead>
+                        <tr>
+                            <th>Sample ID</th>
+                            <th>Concentration (ng/µl)</th>
+                            <th>Volume (µl)</th>
+                            <th>Yield (µg)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>ICGA_BC_NT_125</td><td class="mono">8.34</td><td class="mono">20</td><td class="mono">0.17</td><td>QC PASS</td></tr>
+                        <tr><td>ICGA_BC_TT_125</td><td class="mono">8.8</td><td class="mono">20</td><td class="mono">0.18</td><td>QC PASS</td></tr>
+                        <tr><td>ICGA_BC_NT_126</td><td class="mono">89.8</td><td class="mono">20</td><td class="mono">1.80</td><td>QC PASS</td></tr>
+                        <tr><td>ICGA_BC_TT_126</td><td class="mono">88.6</td><td class="mono">20</td><td class="mono">1.77</td><td>QC PASS</td></tr>
+                        <tr><td>ICGA_BC_NT_127</td><td class="mono">88.4</td><td class="mono">20</td><td class="mono">1.77</td><td>QC PASS</td></tr>
+                        <tr><td>ICGA_BC_TT_127</td><td class="mono">32.8</td><td class="mono">20</td><td class="mono">0.66</td><td>QC PASS</td></tr>
+                        <tr><td>ICGA_BC_NT_129</td><td class="mono">89</td><td class="mono">20</td><td class="mono">1.78</td><td>QC PASS</td></tr>
+                        <tr><td>ICGA_BC_TT_129</td><td class="mono">90</td><td class="mono">20</td><td class="mono">1.80</td><td>QC PASS</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 4. QC Library -->
+        <section id="qc-library">
+            <h2 class="section-title">4 Quantity and Quality Check (QC) of Library</h2>
+            <div class="chart-box">
+                <canvas id="tapeChart"></canvas>
+            </div>
+            <h3 class="sub-title">4.2 Wet Lab Inferences</h3>
+            <div class="info-card bg-slate-50 border-slate-200">
+                <ul class="space-y-2 text-sm">
+                    <li class="flex gap-2"><span>•</span> The libraries were prepared from the samples by KAPA mRNA Hyper Prep Kit for Illumina (CAT #KK8581).</li>
+                    <li class="flex gap-2"><span>•</span> The average size of libraries was determined as: 479bp, 503bp, 487bp, 539bp, 464bp, 488bp, 493bp, and 489bp across the 8 samples.</li>
+                    <li class="flex gap-2"><span>•</span> Sequencing generated ~18-20 Gb/Sample using 2x150 bp PE chemistry on the Illumina Novaseq X Plus platform.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 5. Bioinformatics -->
+        <section id="bioinformatics">
+            <h2 class="section-title">5 Bioinformatics Analysis</h2>
+            <h3 class="sub-title">5.1 Bioinformatics Workflow</h3>
+            <p>Raw data was filtered to remove adapters and low-quality bases. Reference guided transcript assembly was performed using <strong>STAR (v2.7.10a)</strong> aligner and <strong>StringTie (v 2.2.1)</strong>. Gene Ontology and pathway analysis of significantly differentially expressed transcripts were performed using <strong>Blast2go cli</strong> and <strong>KEGG-KAAS</strong> server.</p>
+
+            <h3 class="sub-title">5.2 Detail of Software used for analysis</h3>
+            <div class="table-container">
+                <table id="softwareTable">
+                    <thead>
+                        <tr><th>Software</th><th>Version</th><th>Application</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Trim Galore</td><td>0.6.4</td><td>Adapter and low-quality data removal</td></tr>
+                        <tr><td>STAR</td><td>2.7.10</td><td>Mapping of reads to reference genome</td></tr>
+                        <tr><td>Stringtie</td><td>2.2.1</td><td>Reference based assembly</td></tr>
+                        <tr><td>gffcompare</td><td>0.12.6</td><td>Genome structural comparison</td></tr>
+                        <tr><td>Blast2go cli</td><td>1.5</td><td>GO mapping and annotation</td></tr>
+                        <tr><td>edgeR</td><td>3.6.2</td><td>Differential expression analysis</td></tr>
+                        <tr><td>clusterProfiler</td><td>4.12.6</td><td>Over-representation analysis</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 5.3 Data Statistics -->
+            <h3 id="data-stats" class="sub-title">5.3 Data Statistics</h3>
+            <div class="table-container">
+                <table id="statsTable">
+                    <thead>
+                        <tr>
+                            <th>Sample</th>
+                            <th>Total Reads (R1+R2)</th>
+                            <th>Total Bases (R1+R2)</th>
+                            <th>Total Data (GB)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>ICGA-BC-NT-125</td><td class="mono">144,835,764</td><td class="mono">23,028,886,476</td><td class="font-bold">23.03</td></tr>
+                        <tr><td>ICGA-BC-NT-126</td><td class="mono">145,091,624</td><td class="mono">23,069,568,216</td><td class="font-bold">23.07</td></tr>
+                        <tr><td>ICGA-BC-NT-127</td><td class="mono">158,285,236</td><td class="mono">25,167,352,524</td><td class="font-bold">25.17</td></tr>
+                        <tr><td>ICGA-BC-NT-129</td><td class="mono">153,712,948</td><td class="mono">24,440,358,732</td><td class="font-bold">24.44</td></tr>
+                        <tr><td>ICGA-BC-TT-125</td><td class="mono">148,420,910</td><td class="mono">23,598,924,690</td><td class="font-bold">23.6</td></tr>
+                        <tr><td>ICGA-BC-TT-126</td><td class="mono">145,204,398</td><td class="mono">23,087,499,282</td><td class="font-bold">23.09</td></tr>
+                        <tr><td>ICGA-BC-TT-127</td><td class="mono">151,094,320</td><td class="mono">24,023,996,880</td><td class="font-bold">24.02</td></tr>
+                        <tr><td>ICGA-BC-TT-129</td><td class="mono">140,113,380</td><td class="mono">22,278,027,420</td><td class="font-bold">22.28</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 5.4 Reference Genome -->
+            <h3 id="genome" class="sub-title">5.4 Reference Genome Information</h3>
+            <p>Based on information received from client, the reference genome of <strong>Homo sapiens (human) (GCF_000001405.40)</strong> and its corresponding GFF file was downloaded from NCBI.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="table-container m-0">
+                    <table class="w-full">
+                        <thead><tr><th colspan="2">Genome Stats (GRCh38.p14)</th></tr></thead>
+                        <tbody>
+                            <tr><td>Total Chromosomes/Scaffolds</td><td class="mono">705</td></tr>
+                            <tr><td>Total Genome Length (bp)</td><td class="mono">3,298,430,636</td></tr>
+                            <tr><td>Mean Scaffold Size</td><td class="mono">4,678,625</td></tr>
+                            <tr><td>Max Scaffold Size (bp)</td><td class="mono">248,956,422</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-container m-0">
+                    <table class="w-full">
+                        <thead><tr><th colspan="2">GFF Detail Info</th></tr></thead>
+                        <tbody>
+                            <tr><td>mRNA</td><td class="mono">144,447</td></tr>
+                            <tr><td>CDS</td><td class="mono">1,836,136</td></tr>
+                            <tr><td>exon</td><td class="mono">2,301,289</td></tr>
+                            <tr><td>gene</td><td class="mono">47,876</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5.5 Alignment -->
+            <h3 id="alignment" class="sub-title">5.5 Mapping to reference genome</h3>
+            <div class="table-container">
+                <table id="alignmentTable">
+                    <thead>
+                        <tr>
+                            <th>Sample Name</th>
+                            <th>Total clean Reads</th>
+                            <th>No. of Mapped Reads</th>
+                            <th>% mapped</th>
+                            <th>% uniquely mapped</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>ICGA-BC-NT-125</td><td class="mono">72,149,275</td><td class="mono">37,104,104</td><td>51.43</td><td>46.68</td></tr>
+                        <tr><td>ICGA-BC-NT-126</td><td class="mono">72,286,617</td><td class="mono">63,654,339</td><td>88.06</td><td>75.43</td></tr>
+                        <tr><td>ICGA-BC-NT-127</td><td class="mono">78,835,961</td><td class="mono">70,381,220</td><td>89.28</td><td>77.05</td></tr>
+                        <tr><td>ICGA-BC-NT-129</td><td class="mono">76,538,753</td><td class="mono">75,296,646</td><td>98.38</td><td>84.06</td></tr>
+                        <tr><td>ICGA-BC-TT-125</td><td class="mono">73,965,951</td><td class="mono">49,678,232</td><td>67.16</td><td>21.56</td></tr>
+                        <tr><td>ICGA-BC-TT-126</td><td class="mono">72,221,778</td><td class="mono">70,916,221</td><td>98.19</td><td>76.2</td></tr>
+                        <tr><td>ICGA-BC-TT-127</td><td class="mono">75,102,744</td><td class="mono">69,862,954</td><td>93.02</td><td>62.2</td></tr>
+                        <tr><td>ICGA-BC-TT-129</td><td class="mono">69,702,563</td><td class="mono">68,143,610</td><td>97.76</td><td>76.79</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-[11px] text-rose-600 font-bold italic mt-2">Note: Mapping for sample ICGA-BC-NT-125 and ICGA-BC-TT-125 was less than optimum which may indicate presence of reads originating from other organism.</p>
+
+            <!-- 5.6 Assembly -->
+            <h3 id="assembly" class="sub-title">5.6 Transcript Assembly</h3>
+            <p>Summary of transcript assembly using StringTie's network flow algorithm. A total of <strong>3,096 novel isoforms</strong> (class code 'j') were identified.</p>
+            <div class="table-container">
+                <table id="assemblyTable">
+                    <thead>
+                        <tr>
+                            <th>Sample Name</th>
+                            <th># assembled transcripts</th>
+                            <th>Total size (bp)</th>
+                            <th>Mean size (bp)</th>
+                            <th>Max size (bp)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>merged.fasta</td><td class="mono">653,846</td><td class="mono">983,019,883</td><td>1,503</td><td>1,55,532</td></tr>
+                        <tr><td>ICGA-BC-NT-125</td><td class="mono">4,84,292</td><td class="mono">35,52,47,280</td><td>733.5</td><td>1,55,532</td></tr>
+                        <tr><td>ICGA-BC-TT-126</td><td class="mono">2,55,210</td><td class="mono">56,41,16,378</td><td>2,210.4</td><td>1,55,532</td></tr>
+                        <tr><td>ICGA-BC-TT-129</td><td class="mono">2,69,530</td><td class="mono">57,79,75,701</td><td>2,144.4</td><td>1,55,532</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 5.8 DGE Results -->
+            <h3 id="dge" class="sub-title">5.8 Differential Expression Analysis</h3>
+            <p>Significant DEGs were filtered using criteria: <strong>|log2FC| > 0</strong> and <strong>q-value < 0.05</strong>. Since there are no biological replicates, DEG analysis was performed using edgeR's single-sample distribution model.</p>
+            <div class="chart-box">
+                <canvas id="dgeChart"></canvas>
+            </div>
+            <div class="table-container">
+                <table id="dgeTable">
+                    <thead>
+                        <tr>
+                            <th>Comparison</th>
+                            <th>Total DEGs</th>
+                            <th>Sig. Down</th>
+                            <th>Sig. Up</th>
+                            <th># Significant DGE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Comparison 1 (TT-125 vs NT-125)</td><td class="mono">9160</td><td class="mono text-rose-600">493</td><td class="mono text-emerald-600">768</td><td class="font-bold">1261</td></tr>
+                        <tr><td>Comparison 2 (TT-126 vs NT-126)</td><td class="mono">36826</td><td class="mono text-rose-600">2666</td><td class="mono text-emerald-600">2481</td><td class="font-bold">5147</td></tr>
+                        <tr><td>Comparison 3 (TT-127 vs NT-127)</td><td class="mono">28797</td><td class="mono text-rose-600">3678</td><td class="mono text-emerald-600">3923</td><td class="font-bold">7601</td></tr>
+                        <tr><td>Comparison 4 (TT-129 vs NT-129)</td><td class="mono">37177</td><td class="mono text-rose-600">2228</td><td class="mono text-emerald-600">2467</td><td class="font-bold">4695</td></tr>
+                        <tr><td>Comparison 5 (TT vs NT Pooled)</td><td class="mono">68563</td><td class="mono text-rose-600">127</td><td class="mono text-emerald-600">61</td><td class="font-bold">188</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Functional -->
+            <h3 id="functional" class="sub-title">5.8.5 Pathway analysis for significant DGE</h3>
+            <p>KEGG pathway statistics for Significantly differentially expressed transcripts for <strong>Comparison-1</strong>.</p>
+            <div class="table-container">
+                <table id="keggTable">
+                    <thead>
+                        <tr><th>Level 1</th><th>Level 2</th><th>Counts</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Metabolism</td><td>Carbohydrate metabolism</td><td class="mono">37</td></tr>
+                        <tr><td>Metabolism</td><td>Lipid metabolism</td><td class="mono">34</td></tr>
+                        <tr><td>Environmental Processing</td><td>Signal transduction</td><td class="mono">375</td></tr>
+                        <tr><td>Cellular Processes</td><td>Transport and catabolism</td><td class="mono">95</td></tr>
+                        <tr><td>Organismal Systems</td><td>Endocrine system</td><td class="mono">226</td></tr>
+                        <tr><td>Human Diseases</td><td>Neurodegenerative disease</td><td class="mono">174</td></tr>
+                        <tr><td>Brite Hierarchies</td><td>Protein families: genetic info</td><td class="mono">586</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 6. Deliverables -->
+        <section id="deliverables">
+            <h2 class="section-title">6 Deliverables Overview</h2>
+            <div class="bg-slate-900 rounded-3xl p-10 text-slate-300 relative overflow-hidden">
+                <i data-lucide="folder-tree" class="absolute -right-10 -bottom-10 w-64 h-64 text-white opacity-5"></i>
+                <h3 class="text-sky-400 font-bold mb-4 flex items-center gap-2">
+                    <i data-lucide="terminal" class="w-5 h-5"></i> Directory Structure
+                </h3>
+                <div class="mono text-[10px] leading-loose">
+.
+├── 01_Raw_Data
+│   ├── ICGA-BC-NT-125_R1/R2.fastq.gz ... (8 Samples)
+│   ├── NGS_240592_md5sum.txt
+│   └── NGS_240592_Raw_Stats.txt
+├── 02_reference_genome_and_gff
+│   ├── GCF_000001405.40_GRCh38.p14_genomic.fna
+│   └── GCF_000001405.40_GRCh38.p14_genomic.gff
+├── 03_transcript_assembly_gtf
+│   ├── merged_transcripts.gtf
+│   └── novel.isoforms.gtf (3,096 Novel Isoforms)
+├── 04_transcript_sequences_fasta
+├── 05_differential_expression_analysis
+│   ├── Comparison 1 to 5 DGE.xlsx
+│   └── Heatmaps, MA and Volcano Plots
+├── 06_Significant_DGE_GO
+├── 07_Significant_DGE_pathways
+└── 08_Significant_DGE_Enrichment
+                </div>
+            </div>
+        </section>
+
+        <footer class="mt-20 py-12 border-t border-slate-200 text-center">
+            <p class="text-slate-400 text-xs font-medium uppercase tracking-[0.2em]">Unigenome Genomics | Confidential Restricted</p>
+            <p class="text-slate-500 text-sm mt-2">© 2025 Unipath Specialty Laboratory Ltd. All rights reserved.</p>
+        </footer>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tables = ['#sampleTable', '#qubitTable', '#softwareTable', '#statsTable', '#alignmentTable', '#assemblyTable', '#dgeTable', '#keggTable'];
+            tables.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) new simpleDatatables.DataTable(el, { searchable: true, fixedHeight: false, perPage: 10 });
+            });
+            initCharts();
+        });
+
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            let current = "";
+            sections.forEach(section => {
+                if (pageYOffset >= section.offsetTop - 150) current = section.getAttribute('id');
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) link.classList.add('active');
+            });
+        });
+
+        function initCharts() {
+            // Library Peak Size Chart
+            new Chart(document.getElementById('tapeChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['NT-125', 'TT-125', 'NT-126', 'TT-126', 'NT-127', 'TT-127', 'NT-129', 'TT-129'],
+                    datasets: [{
+                        label: 'Mean Library Size (bp)',
+                        data: [479, 503, 487, 539, 464, 488, 493, 489],
+                        backgroundColor: '#337ab7',
+                        borderRadius: 6
+                    }]
+                },
+                options: { 
+                    maintainAspectRatio: false, 
+                    plugins: { title: { display: true, text: 'TapeStation 4150 Library Peak Sizes' } },
+                    scales: { y: { beginAtZero: false, min: 400 } }
+                }
+            });
+
+            // DGE Summary Chart
+            new Chart(document.getElementById('dgeChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Comp 1', 'Comp 2', 'Comp 3', 'Comp 4', 'Comp 5'],
+                    datasets: [
+                        { label: 'Sig Up', data: [768, 2481, 3923, 2467, 61], backgroundColor: '#10b981' },
+                        { label: 'Sig Down', data: [493, 2666, 3678, 2228, 127], backgroundColor: '#f43f5e' }
+                    ]
+                },
+                options: { 
+                    maintainAspectRatio: false, 
+                    scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'Gene Count' } } } 
+                }
+            });
+        }
+
+        function exportReport() {
+            const element = document.getElementById('report-body');
+            const btn = document.getElementById('exportBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Generating PDF...';
+            btn.style.pointerEvents = 'none';
+            document.body.classList.add('export-mode');
+            const opt = {
+                margin: 10,
+                filename: 'Unigenome_Final_Report_NGS-240592.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.body.classList.remove('export-mode');
+                btn.innerHTML = originalContent;
+                btn.style.pointerEvents = 'auto';
+                lucide.createIcons();
+            });
+        }
+    </script>
+</body>
+</html>
