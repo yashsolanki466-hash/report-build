@@ -64,7 +64,7 @@ def get_deliverables_tree(input_dir: str) -> str:
 
 
 def _as_float(v):
-    if v is None:
+    if v is None or pd.isna(v):
         return None
     if isinstance(v, (int, float)):
         return float(v)
@@ -75,6 +75,13 @@ def _as_float(v):
         return float(s)
     except Exception:
         return None
+
+
+def _fmt_int(v):
+    val = _as_float(v)
+    if val is None:
+        return "N/A"
+    return f"{int(val):,}"
 
 
 def _downsample(points, max_points: int = 8000):
@@ -154,6 +161,8 @@ def _compute_dge_plot_data(df: pd.DataFrame) -> dict:
         or next((c for c in df.columns if any(tok in _norm_col(c) for tok in ("pvalue", "pval"))), None)
     )
 
+    gene_col = _find_col(df, ["gene", "geneid", "id", "transcript", "locus"]) or df.columns[0]
+
     ma = {"up": [], "down": [], "ns": []}
     volcano = {"up": [], "down": [], "ns": []}
 
@@ -168,6 +177,7 @@ def _compute_dge_plot_data(df: pd.DataFrame) -> dict:
         cpm = _as_float(row.get(cpm_col)) if cpm_col else None
         mean_expr = _as_float(row.get(mean_col)) if mean_col else None
         pval = _as_float(row.get(sig_col)) if sig_col else None
+        gene_id = str(row.get(gene_col, "Unknown"))
 
         is_sig = (pval is not None and pval > 0 and pval < 0.05)
         if is_sig and fc >= 1:
@@ -183,10 +193,10 @@ def _compute_dge_plot_data(df: pd.DataFrame) -> dict:
         elif mean_expr is not None and mean_expr >= 0:
             ma_x = math.log10(mean_expr + 1.0)
         if ma_x is not None:
-            ma[bucket].append({"x": ma_x, "y": fc})
+            ma[bucket].append({"x": ma_x, "y": fc, "gene": gene_id})
 
         if pval is not None and pval > 0:
-            volcano[bucket].append({"x": fc, "y": -math.log10(pval)})
+            volcano[bucket].append({"x": fc, "y": -math.log10(pval), "gene": gene_id})
 
     for k in ma:
         ma[k] = _downsample(ma[k])
@@ -551,32 +561,29 @@ def get_sequencing_stats(input_dir, samples):
                 # Flexible matching
                 sample_col = next((c for c in df.columns if 'sample' in c.lower()), None)
                 # Specific columns from user's file: "Total Reads(R1+R2)", "Total Bases (R1+R2)", "Total Data(GB)"
-                reads_col = next((c for c in df.columns if '(R1+R2)' in c and 'Reads' in c), None) 
+                reads_col = next((c for c in df.columns if '(R1+R2)' in c and 'Reads' in c), None)
                 if not reads_col: reads_col = next((c for c in df.columns if 'ReadCount' in c), None)
-                
+
                 bases_col = next((c for c in df.columns if '(R1+R2)' in c and 'Bases' in c), None)
                 if not bases_col: bases_col = next((c for c in df.columns if 'BaseCount' in c), None)
 
                 gb_col = next((c for c in df.columns if 'Total Data' in c), None)
 
                 if sample_col:
-                    reads_val = str(row[reads_col]).replace(',', '') if reads_col and pd.notna(row[reads_col]) else "0"
-                    bases_val = str(row[bases_col]).replace(',', '') if bases_col and pd.notna(row[bases_col]) else "0"
-                    gb_val = str(row[gb_col]).replace(',', '') if gb_col and pd.notna(row[gb_col]) else "0"
+                    reads_val = row.get(reads_col)
+                    bases_val = row.get(bases_col)
+                    gb_val = row.get(gb_col)
 
-                    try:
-                        reads_fmt = f"{int(float(reads_val)):,}"
-                    except: reads_fmt = "N/A"
-                    
-                    try:
-                        bases_fmt = f"{int(float(bases_val)):,}"
-                    except: bases_fmt = "N/A"
+                    r1_col = next((c for c in df.columns if 'R1' in c and 'Reads' in c), None)
+                    r2_col = next((c for c in df.columns if 'R2' in c and 'Reads' in c), None)
 
                     stats.append({
                         "sample": str(row[sample_col]),
-                        "total_reads": reads_fmt,
-                        "total_bases": bases_fmt,
-                        "data_gb": gb_val
+                        "total_reads_r1": _fmt_int(row.get(r1_col)) if r1_col else "N/A",
+                        "total_reads_r2": _fmt_int(row.get(r2_col)) if r2_col else "N/A",
+                        "total_reads": _fmt_int(reads_val),
+                        "total_bases": _fmt_int(bases_val),
+                        "data_gb": str(gb_val) if pd.notna(gb_val) else "N/A"
                     })
         except Exception as e:
             print(f"Error parsing raw stats file: {e}")
@@ -620,12 +627,12 @@ def get_mapping_stats(input_dir):
                 total_reads_col = _find_col(df, ["totalreads", "no_of_reads"]) or next((c for c in df.columns if 'Total' in c and 'Reads' in c), None)
 
                 if sample_col:
-                     mapping_stats.append({
+                    mapping_stats.append({
                         "sample_name": row[sample_col],
-                        "total_reads": f"{int(float(str(row[total_reads_col]).replace(',',''))):,}" if total_reads_col and pd.notna(row[total_reads_col]) else "N/A",
-                        "mapped_reads": f"{int(float(str(row[mapped_col]).replace(',',''))):,}" if mapped_col and pd.notna(row[mapped_col]) else "N/A",
+                        "total_reads": _fmt_int(row.get(total_reads_col)) if total_reads_col else "N/A",
+                        "mapped_reads": _fmt_int(row.get(mapped_col)) if mapped_col else "N/A",
                         "percent_mapped": str(row[pct_mapped_col]) if pct_mapped_col and pd.notna(row[pct_mapped_col]) else "N/A",
-                        "unique_reads": f"{int(float(str(row[unique_col]).replace(',',''))):,}" if unique_col and pd.notna(row[unique_col]) else "N/A",
+                        "unique_reads": _fmt_int(row.get(unique_col)) if unique_col else "N/A",
                         "percent_unique": str(row[pct_unique_col]) if pct_unique_col and pd.notna(row[pct_unique_col]) else "N/A"
                     })
         except Exception as e:
@@ -1088,6 +1095,24 @@ def main():
     # 11. Deliverables tree
     deliverables_tree = get_deliverables_tree(input_dir)
 
+    # 12. RNA QC Gel
+    rna_qc_gel_path = _find_first_existing(input_dir, [
+        "01_Raw_Data/*Gel*", "01_Raw_Data/*gel*", "assets/*Gel*", "assets/*gel*"
+    ])
+    rna_qc_gel_src = _relpath_posix(rna_qc_gel_path, input_dir) if rna_qc_gel_path else ""
+
+    # 13. TapeStation Profiles
+    tapestation_profiles = []
+    ts_files = glob.glob(os.path.join(input_dir, "01_Raw_Data", "*TapeStation*")) + \
+               glob.glob(os.path.join(input_dir, "01_Raw_Data", "*Profile*"))
+    for ts_f in sorted(ts_files):
+        if ts_f.lower().endswith((".png", ".jpg", ".jpeg")):
+            sample_name = os.path.basename(ts_f).split('_')[0]
+            tapestation_profiles.append({
+                "sample": sample_name,
+                "src": _relpath_posix(ts_f, input_dir)
+            })
+
     # Static component assets (repo-local)
     gffcompare_codes_path = _find_component_asset(script_dir, "gffcompare_codes.png")
     gffcompare_codes_src = _relpath_posix(gffcompare_codes_path, input_dir) if gffcompare_codes_path else ""
@@ -1113,6 +1138,8 @@ def main():
     )
     # Prefer explicit CLI --logo-path; else metadata.json can set logo_path; else default asset
     logo_path = args.logo_path or meta.get("logo_path") or os.path.join(script_dir, 'assets', 'logo.png')
+    if logo_path and not os.path.isabs(logo_path):
+        logo_path = os.path.abspath(logo_path)
 
     # Render
     static_content = load_static_content(script_dir)
@@ -1135,7 +1162,7 @@ def main():
         "total_genes": total_genes,
         "ref_stats": ref_stats,
         "mapping_stats": mapping_stats,
-        "total_transcripts": sum(int(x['num_transcripts'].replace(',', '')) for x in assembly_stats if x['sample'] == 'merged.fasta') if assembly_stats else 0,
+        "total_transcripts": sum(int(_as_float(x['num_transcripts']) or 0) for x in assembly_stats if x['sample'] == 'merged.fasta') if assembly_stats else 0,
         "mean_transcript_size": next((x['mean_size'] for x in assembly_stats if x['sample'] == 'merged.fasta'), 0),
         "assembly_stats": assembly_stats,
         "diff_expr_stats": dge_stats,
@@ -1150,6 +1177,8 @@ def main():
         "dge_group_table": dge_group_table,
         "func_assets": func_assets,
         "deliverables_tree": deliverables_tree,
+        "rna_qc_gel_src": rna_qc_gel_src,
+        "tapestation_profiles": tapestation_profiles,
         "gffcompare_codes_src": gffcompare_codes_src,
         "workflow_figure_src": workflow_figure_src,
         "stringtie_merge_figure_src": stringtie_merge_figure_src,
